@@ -1,11 +1,3 @@
-/** \file shapemotion.c
- *  \brief This is a simple shape motion demo.
- *  This demo creates two layers containing shapes.
- *  One layer contains a rectangle and the other a circle.
- *  While the CPU is running the green LED is on, and
- *  when the screen does not need to be redrawn the CPU
- *  is turned off along with the green LED.
- */  
 #include <msp430.h>
 #include <libTimer.h>
 #include <lcdutils.h>
@@ -38,10 +30,10 @@ AbRectOutline fieldOutline = { abRectOutlineGetBounds, abRectOutlineCheck, {scre
 Layer fieldLayer = { (AbShape *) &fieldOutline, {screenWidth/2, screenHeight/2 - 20}, {0,0}, {0,0}, COLOR_BLACK, 0 }; 
 Layer grassRightSide = { (AbShape *)&grass, {0, (screenHeight/2)}, {0,0}, {0,0}, COLOR_GREEN, &fieldLayer };
 Layer grassLeftSide = { (AbShape *)&grass, {(screenWidth), (screenHeight/2)}, {0,0}, {0,0}, COLOR_GREEN, &grassRightSide };
-Layer car = { (AbShape *)&carBody, {screenWidth/2, screenHeight/2}, {0,0}, {0,0}, COLOR_RED, &grassLeftSide };
-Layer enemyLeftSide = { (AbShape *)&circle4, {screenWidth/2 - 30, -13}, {0,0}, {0,0}, COLOR_ORANGE, &car };
+Layer car = { (AbShape *)&carBody, {screenWidth/2, screenHeight/2}, {0,0}, {0,0}, COLOR_BLUE, &grassLeftSide };
+Layer enemyLeftSide = { (AbShape *)&circle4, {screenWidth/2 - 30, -13}, {0,0}, {0,0}, COLOR_YELLOW, &car };
 Layer enemyRightSide = { (AbShape *)&circle4, {screenWidth/2 + 30, -13}, {0,0}, {0,0}, COLOR_YELLOW, &enemyLeftSide };
-Layer enemyCenter = { (AbShape *)&circle4, {screenWidth/2, -13}, {0,0}, {0,0}, COLOR_BLUE, &enemyRightSide };
+Layer enemyCenter = { (AbShape *)&circle4, {screenWidth/2, -13}, {0,0}, {0,0}, COLOR_YELLOW, &enemyRightSide };
 
 /** Moving Layer
  *  Linked list of layer references
@@ -65,7 +57,6 @@ MovLayer enemyMl0 = { &enemyCenter, {0,7}, &enemyMl1};
  
 char score = 0;                  /** Score ones place */
 char scoreDecimal = 0;           /** Score decimal place */
-char difficulty = 1;             /** game difficulty */
 char scoreStr[11] = "score: 00"; /** Score string */
 char indexScore = 8;             /** Score index */
 short transitionSpeed = 30;      /** number of interrupts */
@@ -130,11 +121,11 @@ void enemyAdvance(MovLayer *ml, Region *fence)
   for (; ml; ml = ml->next) {
     vec2Add(&newPos, &ml->layer->posNext, &ml->velocity);
     abShapeGetBounds(ml->layer->abShape, &newPos, &shapeBoundary);
-    newPos.axes[1] = newPos.axes[1] + difficulty;
-
     // if the enemy reaches the bottom, move it to the top again
     if(shapeBoundary.topLeft.axes[1] > screenHeight-20){
       newPos.axes[1] = -10;
+      ml->velocity.axes[1] += 1;
+      ml->layer->color += 0x0f00;
       score++;
     }
     
@@ -289,7 +280,7 @@ void state_advance(){
   case instructions:  // This state plays a song and ask the user for input
     switches =  p2sw_read();
     isS1Pressed = (switches & SW1) ? 0 : 1;
-    //buzzer_play_game_song();
+    buzzer_play_game_song();
     if(isS1Pressed){         // if s1 was presed move to the next state
       buzzer_set_period(0);
       currentState = play;
@@ -316,7 +307,7 @@ void state_advance(){
     switches =  p2sw_read();
     isS1Pressed = (switches & SW1) ? 0 : 1;
     if(!isS1Pressed){ 
-      //buzzer_play_game_song();
+      buzzer_play_game_song();
     }
     else{        // if the user press s1, reset all the variables and changes state to play
       car.posNext.axes[1] = screenHeight/2;
@@ -324,12 +315,14 @@ void state_advance(){
       enemyLeftSide.posNext.axes[1] = -10;
       enemyRightSide.posNext.axes[1] = -10;
       enemyCenter.posNext.axes[1] = -10;
+      enemyMl0.layer->color = COLOR_YELLOW;
+      enemyMl1.layer->color = COLOR_YELLOW;
+      enemyMl2.layer->color = COLOR_YELLOW;
       enemyMl0.velocity.axes[1] = 4;
       enemyMl1.velocity.axes[1] = 2;
       enemyMl2.velocity.axes[1] = 3;
       layerDraw(&enemyCenter);
       currentState = play;
-      difficulty = 1;
       score = 0;
       scoreDecimal = 0;
       scoreStr[7] = '0';
@@ -345,20 +338,12 @@ void state_advance(){
 void wdt_c_handler()
 {
   static short count = 0;
-  static short difficultyCounter = 0;
   P1OUT |= GREEN_LED;		      /**< Green LED on when cpu on */
   count++;
   
   if (count == transitionSpeed) {
     state_advance();
     count = 0;
-  }
-
-  if(difficultyCounter == 100){
-    if(difficulty < 10){
-      difficulty += 1;
-    }
-    difficultyCounter = 0;
   }
   P1OUT &= ~GREEN_LED;		    /**< Green LED off when cpu off */
 }

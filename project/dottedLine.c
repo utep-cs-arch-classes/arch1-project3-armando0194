@@ -1,4 +1,0 @@
-#include "shape.h"
-
-main(){
-}
