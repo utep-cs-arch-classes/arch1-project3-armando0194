@@ -1,0 +1,11 @@
+
+ 
+// compute bounding box in screen coordinates for rect at centerPos
+void abRectOutlineGetBounds(const AbRectOutline *rect, const Vec2 *centerPos, Region *bounds)
+{
+  vec2Sub(&bounds->topLeft, centerPos, &rect->halfSize);
+  vec2Add(&bounds->botRight, centerPos, &rect->halfSize);
+}
+
+
+

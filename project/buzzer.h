@@ -7,5 +7,6 @@ void buzzer_init();
 void buzzer_set_period(short cycles);
 /* Plays tetris song notes */
 void buzzer_play_game_song();
+void buzzer_play_car_move();
 
 #endif // included
